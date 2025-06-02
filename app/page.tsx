@@ -41,7 +41,7 @@ export default function Home() {
     };
 
     return (
-        <div className='flex flex-col items-center justify-center min-h-screen rounded bg-slate-400 p-4'>
+        <div className='flex flex-col items-center justify-center h-full rounded bg-indigo-300 p-4'>
             <form
                 onSubmit={handleSearch}
                 className='mb-8 w-full max-w-md flex gap-2'
@@ -62,11 +62,16 @@ export default function Home() {
             </form>
             {loading && <div>Carregando...</div>}
             {error && <div className='text-red-500'>{error}</div>}
-            <div className='flex flex-col items-center gap-6 w-full max-w-xl'>
+            <div className='flex flex-col items-center gap-6 w-full max-w-xl min-h-[200px] overflow-y-auto max-h-[70vh] p-2 bg-white bg-opacity-60 rounded shadow-inner'>
+                {!loading && !error && results.length === 0 && (
+                    <div className='text-gray-600 text-center w-full py-8'>
+                        Nenhum jogo encontrado.
+                    </div>
+                )}
                 {results.map((game) => (
                     <div
                         key={game.id}
-                        className='bg-white rounded-lg border border-gray-200 p-6 w-full flex gap-6 items-center shadow-sm'
+                        className='bg-white rounded-lg border border-gray-200 p-6 w-full flex flex-col sm:flex-row gap-6 items-center shadow-sm transition-all duration-200'
                     >
                         {game.cover?.url && (
                             <Image
@@ -87,15 +92,18 @@ export default function Home() {
                                 className='w-24 h-32 object-cover rounded-md border border-gray-100 bg-gray-50'
                             />
                         )}
-                        <div className='flex-1'>
-                            <h2 className='text-xl font-semibold mb-1'>
+                        <div className='flex-1 w-full'>
+                            <h2 className='text-xl font-semibold mb-1 break-words'>
                                 {game.name}
                             </h2>
                             <div className='text-xs text-gray-500 mb-1'>
-                                {game.platforms?.map((p) => p.name).join(', ')}
+                                {game.platforms
+                                    ?.map((p) => p.name)
+                                    .join(', ') || 'Plataformas desconhecidas'}
                             </div>
                             <div className='text-xs text-gray-500 mb-1'>
-                                {game.genres?.map((g) => g.name).join(', ')}
+                                {game.genres?.map((g) => g.name).join(', ') ||
+                                    'Gêneros desconhecidos'}
                             </div>
                             <div className='text-xs text-gray-500 mb-1'>
                                 Lançamento:{' '}
@@ -109,8 +117,8 @@ export default function Home() {
                                 Nota:{' '}
                                 {game.rating ? game.rating.toFixed(1) : 'N/A'}
                             </div>
-                            <div className='text-sm text-gray-700 mb-2'>
-                                {game.summary}
+                            <div className='text-sm text-gray-700 mb-2 break-words'>
+                                {game.summary || 'Sem descrição.'}
                             </div>
                             {game.url && (
                                 <a
