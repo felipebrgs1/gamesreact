@@ -1,103 +1,131 @@
-import Image from "next/image";
+'use client';
+import { useState } from 'react';
+import Image from 'next/image';
+
+interface Game {
+    id: number;
+    name: string;
+    cover?: { url: string };
+    platforms?: { name: string }[];
+    genres?: { name: string }[];
+    first_release_date?: number;
+    rating?: number;
+    summary?: string;
+    url?: string;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    const [search, setSearch] = useState('');
+    const [results, setResults] = useState<Game[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            const res = await fetch('/api/igdb-search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ search }),
+            });
+            const data = await res.json();
+            if (data.error) setError(data.error);
+            else setResults(data.data);
+        } catch {
+            setError('Erro ao buscar jogos.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className='flex flex-col items-center justify-center min-h-screen rounded bg-slate-400 p-4'>
+            <form
+                onSubmit={handleSearch}
+                className='mb-8 w-full max-w-md flex gap-2'
+            >
+                <input
+                    type='text'
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder='Buscar jogo...'
+                    className='flex-1 p-2 rounded border bg-white border-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200'
+                />
+                <button
+                    type='submit'
+                    className='px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors'
+                >
+                    Buscar
+                </button>
+            </form>
+            {loading && <div>Carregando...</div>}
+            {error && <div className='text-red-500'>{error}</div>}
+            <div className='flex flex-col items-center gap-6 w-full max-w-xl'>
+                {results.map((game) => (
+                    <div
+                        key={game.id}
+                        className='bg-white rounded-lg border border-gray-200 p-6 w-full flex gap-6 items-center shadow-sm'
+                    >
+                        {game.cover?.url && (
+                            <Image
+                                src={
+                                    game.cover.url.startsWith('//')
+                                        ? `https:${game.cover.url.replace(
+                                              't_thumb',
+                                              't_cover_big',
+                                          )}`
+                                        : game.cover.url.replace(
+                                              't_thumb',
+                                              't_cover_big',
+                                          )
+                                }
+                                alt={game.name}
+                                width={96}
+                                height={128}
+                                className='w-24 h-32 object-cover rounded-md border border-gray-100 bg-gray-50'
+                            />
+                        )}
+                        <div className='flex-1'>
+                            <h2 className='text-xl font-semibold mb-1'>
+                                {game.name}
+                            </h2>
+                            <div className='text-xs text-gray-500 mb-1'>
+                                {game.platforms?.map((p) => p.name).join(', ')}
+                            </div>
+                            <div className='text-xs text-gray-500 mb-1'>
+                                {game.genres?.map((g) => g.name).join(', ')}
+                            </div>
+                            <div className='text-xs text-gray-500 mb-1'>
+                                Lançamento:{' '}
+                                {game.first_release_date
+                                    ? new Date(
+                                          game.first_release_date * 1000,
+                                      ).toLocaleDateString()
+                                    : 'N/A'}
+                            </div>
+                            <div className='text-xs text-gray-500 mb-1'>
+                                Nota:{' '}
+                                {game.rating ? game.rating.toFixed(1) : 'N/A'}
+                            </div>
+                            <div className='text-sm text-gray-700 mb-2'>
+                                {game.summary}
+                            </div>
+                            {game.url && (
+                                <a
+                                    href={game.url}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                    className='text-blue-600 underline text-xs'
+                                >
+                                    Ver na IGDB
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    );
 }
